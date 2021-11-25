@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 
 public class InverseIndex {
 
-    public static class TokenizerMapper extends Mapper<Object, Text, Text, Text> {
+    public static class TokenizerMapper extends Mapper<Object, Text, Text, IntWritable> {
 
         private IntWritable lineNumber;
 
@@ -59,20 +59,20 @@ public class InverseIndex {
 
             // Update the context
             for (Text word : words) {
-                context.write(word, new Text(String.valueOf(lineNumber.get())));
+                context.write(word, lineNumber);
             }
         }
     }
 
-    public static class InverseIndexReducer extends Reducer<Text, Text, Text, Text> {
+    public static class InverseIndexReducer extends Reducer<Text, IntWritable, Text, SetWritable> {
 
         @Override
-        protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-            StringBuilder stringBuilder = new StringBuilder();
-            for (Text iter: values) {
-                stringBuilder.append(iter.toString()).append(", ");
+        protected void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+            SetWritable res = new SetWritable();
+            for (IntWritable iter: values) {
+                res.insert(iter.get());
             }
-            context.write(key, new Text(stringBuilder.toString()));
+            context.write(key, res);
         }
     }
 
@@ -82,8 +82,10 @@ public class InverseIndex {
         job.setJarByClass(InverseIndex.class);
         job.setMapperClass(TokenizerMapper.class);
         job.setReducerClass(InverseIndexReducer.class);
+        job.setMapOutputKeyClass(Text.class);
+        job.setMapOutputValueClass(IntWritable.class);
         job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(Text.class);
+        job.setOutputValueClass(SetWritable.class);
         FileInputFormat.addInputPath(job, new Path(args[0]));
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
         System.exit(job.waitForCompletion(true) ? 0 : 1);

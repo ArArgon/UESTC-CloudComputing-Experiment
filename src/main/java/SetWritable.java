@@ -24,8 +24,8 @@ public class SetWritable implements Writable {
         this.lineSet = lineSet;
     }
 
-    public void insert(IntWritable integer) {
-        lineSet.add(integer);
+    public void insert(int integer) {
+        lineSet.add(new IntWritable(integer));
     }
 
     @Override
